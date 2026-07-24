@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OmniTools - Photo Editor, QR Generator & Utilities</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- QR Code Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #090d16;
+            color: #f3f4f6;
+        }
+
+        .glass-panel {
+            background: rgba(17, 24, 39, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .glass-card {
+            background: rgba(31, 41, 55, 0.4);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-card:hover {
+            border-color: rgba(168, 85, 247, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-gradient {
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            transition: all 0.2s ease;
+        }
+
+        .btn-gradient:hover {
+            opacity: 0.95;
+            box-shadow: 0 8px 20px rgba(168, 85, 247, 0.35);
+        }
+
+        .nav-tab.active {
+            background: rgba(168, 85, 247, 0.15);
+            border-color: rgba(168, 85, 247, 0.4);
+            color: #ffffff;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #090d16;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1f2937;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #374151;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between">
+
+    <!-- Top Header / Navigation -->
+    <header class="sticky top-0 z-50 glass-panel border-b border-white/10 px-6 py-4">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl btn-gradient flex items-center justify-center font-bold text-white text-xl shadow-lg">
+                    ⚡
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight text-white">OmniTools<span class="text-purple-400">.hub</span></h1>
+                    <p class="text-xs text-gray-400">All-in-One Multi-Utility Web Suite</p>
+                </div>
+            </div>
+
+            <!-- Navigation Tabs -->
+            <nav class="flex flex-wrap gap-2 glass-panel p-1.5 rounded-2xl border border-white/10">
+                <button onclick="switchTab('photo-editor')" id="tab-photo-editor" class="nav-tab active px-4 py-2 rounded-xl text-xs sm:text-sm font-medium text-gray-300 transition flex items-center gap-2">
+                    🖼️ Photo Editor
+                </button>
+                <button onclick="switchTab('qr-generator')" id="tab-qr-generator" class="nav-tab px-4 py-2 rounded-xl text-xs sm:text-sm font-medium text-gray-300 transition flex items-center gap-2">
+                    📱 QR Generator
+                </button>
+                <button onclick="switchTab('pdf-tools')" id="tab-pdf-tools" class="nav-tab px-4 py-2 rounded-xl text-xs sm:text-sm font-medium text-gray-300 transition flex items-center gap-2">
+                    📄 PDF Utilities
+                </button>
+                <button onclick="switchTab('dev-tools')" id="tab-dev-tools" class="nav-tab px-4 py-2 rounded-xl text-xs sm:text-sm font-medium text-gray-300 transition flex items-center gap-2">
+                    🛠️ Developer Tools
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Workspace Area -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8 flex-1 w-full">
+
+        <!-- ==================== TAB 1: PHOTO EDITOR ==================== -->
+        <section id="sec-photo-editor" class="tool-section space-y-6">
+            <div class="flex justify-between items-center flex-wrap gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-white">Studio Photo Editor</h2>
+                    <p class="text-sm text-gray-400">Crop, filter, adjust brightness, contrast, rotate, and export high-res images.</p>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="resetImageFilters()" class="px-4 py-2 text-xs font-semibold glass-card rounded-xl hover:bg-white/5 text-gray-300">
+                        🔄 Reset Filters
+                    </button>
+                    <button onclick="downloadEditedPhoto()" class="btn-gradient px-5 py-2 text-xs font-semibold rounded-xl text-white">
+                        ⬇️ Download Image
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                <!-- Controls Panel -->
+                <div class="glass-panel p-6 rounded-3xl space-y-5 lg:col-span-1">
+                    <h3 class="text-sm font-semibold text-purple-300 uppercase tracking-wider">Adjustments</h3>
+
+                    <!-- Upload Button -->
+                    <div>
+                        <label class="block text-xs font-medium text-gray-300 mb-2">Upload Photo</label>
+                        <input type="file" id="photoInput" accept="image/*" class="hidden" onchange="loadPhoto(event)">
+                        <button onclick="document.getElementById('photoInput').click()" class="w-full py-3 px-4 glass-card rounded-xl text-xs font-semibold text-purple-300 hover:text-white flex items-center justify-center gap-2">
+                            📁 Choose File
+                        </button>
+                    </div>
+
+                    <!-- Sliders -->
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between text-xs text-gray-300 mb-1">
+                                <span>Brightness</span>
+                                <span id="val-brightness">100%</span>
+                            </div>
+                            <input type="range" id="slider-brightness" min="0" max="200" value="100" oninput="applyFilters()" class="w-full accent-purple-500">
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-xs text-gray-300 mb-1">
+                                <span>Contrast</span>
+                                <span id="val-contrast">100%</span>
+                            </div>
+                            <input type="range" id="slider-contrast" min="0" max="200" value="100" oninput="applyFilters()" class="w-full accent-purple-500">
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-xs text-gray-300 mb-1">
+                                <span>Saturation</span>
+                                <span id="val-saturate">100%</span>
+                            </div>
+                            <input type="range" id="slider-saturate" min="0" max="200" value="100" oninput="applyFilters()" class="w-full accent-purple-500">
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-xs text-gray-300 mb-1">
+                                <span>Blur</span>
+                                <span id="val-blur">0px</span>
+                            </div>
+                            <input type="range" id="slider-blur" min="0" max="20" value="0" oninput="applyFilters()" class="w-full accent-purple-500">
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-xs text-gray-300 mb-1">
+                                <span>Grayscale</span>
+                                <span id="val-grayscale">0%</span>
+                            </div>
+                            <input type="range" id="slider-grayscale" min="0" max="100" value="0" oninput="applyFilters()" class="w-full accent-purple-500">
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-xs text-gray-300 mb-1">
+                                <span>Sepia</span>
+                                <span id="val-sepia">0%</span>
+                            </div>
+                            <input type="range" id="slider-sepia" min="0" max="100" value="0" oninput="applyFilters()" class="w-full accent-purple-500">
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-xs text-gray-300 mb-1">
+                                <span>Hue Rotate</span>
+                                <span id="val-hue">0°</span>
+                            </div>
+                            <input type="range" id="slider-hue" min="0" max="360" value="0" oninput="applyFilters()" class="w-full accent-purple-500">
+                        </div>
+                    </div>
+
+                    <!-- Transform Tools -->
+                    <h3 class="text-sm font-semibold text-purple-300 uppercase tracking-wider pt-2">Transform</h3>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="rotateImage(-90)" class="py-2 text-xs font-medium glass-card rounded-xl hover:bg-white/5 text-gray-300">↩️ Rotate L</button>
+                        <button onclick="rotateImage(90)" class="py-2 text-xs font-medium glass-card rounded-xl hover:bg-white/5 text-gray-300">↪️ Rotate R</button>
+                        <button onclick="flipImage('h')" class="py-2 text-xs font-medium glass-card rounded-xl hover:bg-white/5 text-gray-300">↔️ Flip Horiz</button>
+                        <button onclick="flipImage('v')" class="py-2 text-xs font-medium glass-card rounded-xl hover:bg-white/5 text-gray-300">↕️ Flip Vert</button>
+                    </div>
+                </div>
+
+                <!-- Canvas Preview -->
+                <div class="glass-panel p-6 rounded-3xl lg:col-span-3 flex flex-col items-center justify-center min-h-[500px] relative overflow-hidden">
+                    <canvas id="photoCanvas" class="max-w-full max-h-[600px] rounded-2xl shadow-2xl object-contain border border-white/5"></canvas>
+                    <div id="photoPlaceholder" class="text-center space-y-3">
+                        <div class="w-16 h-16 rounded-2xl glass-card flex items-center justify-center mx-auto text-2xl text-purple-400">📷</div>
+                        <p class="text-gray-400 text-sm">Upload a photo to start editing</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 2: QR GENERATOR ==================== -->
+        <section id="sec-qr-generator" class="tool-section hidden space-y-6">
+            <div>
+                <h2 class="text-2xl font-bold text-white">Smart QR Code Studio</h2>
+                <p class="text-sm text-gray-400">Generate customizable QR codes for Websites, WiFi networks, Text, VCard, or WhatsApp.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Inputs Form -->
+                <div class="glass-panel p-6 rounded-3xl space-y-5 lg:col-span-2">
+                    <!-- QR Content Type -->
+                    <div>
+                        <label class="block text-xs font-medium text-gray-300 mb-2">Data Type</label>
+                        <div class="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                            <button onclick="setQrType('url')" id="qr-type-url" class="qr-type-btn active py-2 text-xs font-medium glass-card rounded-xl text-center text-purple-300">🔗 Link</button>
+                            <button onclick="setQrType('text')" id="qr-type-text" class="qr-type-btn py-2 text-xs font-medium glass-card rounded-xl text-center text-gray-400">📝 Text</button>
+                            <button onclick="setQrType('wifi')" id="qr-type-wifi" class="qr-type-btn py-2 text-xs font-medium glass-card rounded-xl text-center text-gray-400">📶 WiFi</button>
+                            <button onclick="setQrType('whatsapp')" id="qr-type-whatsapp" class="qr-type-btn py-2 text-xs font-medium glass-card rounded-xl text-center text-gray-400">💬 WhatsApp</button>
+                            <button onclick="setQrType('vcard')" id="qr-type-vcard" class="qr-type-btn py-2 text-xs font-medium glass-card rounded-xl text-center text-gray-400">📇 Contact</button>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Input Fields -->
+                    <div id="qr-inputs-container" class="space-y-4">
+                        <!-- Default URL Input -->
+                        <div id="field-url">
+                            <label class="block text-xs font-medium text-gray-300 mb-1">Website URL</label>
+                            <input type="url" id="qr-input-url" placeholder="https://example.com" oninput="generateQR()" class="w-full bg-gray-900/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-purple-500">
+                        </div>
+                    </div>
+
+                    <!-- Styling Customization -->
+                    <h3 class="text-sm font-semibold text-purple-300 uppercase tracking-wider pt-3">Customization</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-300 mb-1">Foreground Color</label>
+                            <input type="color" id="qr-color-fg" value="#000000" onchange="generateQR()" class="w-full h-10 rounded-xl bg-gray-900 border border-white/10 cursor-pointer p-1">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-300 mb-1">Background Color</label>
+                            <input type="color" id="qr-color-bg" value="#ffffff" onchange="generateQR()" class="w-full h-10 rounded-xl bg-gray-900 border border-white/10 cursor-pointer p-1">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Preview Box -->
+                <div class="glass-panel p-6 rounded-3xl flex flex-col items-center justify-between text-center min-h-[350px]">
+                    <h3 class="text-sm font-semibold text-gray-300">Live Preview</h3>
+                    
+                    <div id="qrcode-box" class="p-4 bg-white rounded-2xl shadow-xl border border-white/10 my-4 flex items-center justify-center min-w-[180px] min-h-[180px]">
+                        <!-- QR Code renders here -->
+                    </div>
+
+                    <button onclick="downloadQRCode()" class="btn-gradient w-full py-3 rounded-xl text-xs font-semibold text-white">
+                        ⬇️ Download High-Res QR
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 3: PDF UTILITIES ==================== -->
+        <section id="sec-pdf-tools" class="tool-section hidden space-y-6">
+            <div>
+                <h2 class="text-2xl font-bold text-white">PDF & Image Convert Utilities</h2>
+                <p class="text-sm text-gray-400">Convert images to PDF documents instantly without uploading to remote servers.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Images to PDF Card -->
+                <div class="glass-panel p-6 rounded-3xl space-y-4 lg:col-span-2">
+                    <h3 class="text-base font-semibold text-purple-300 flex items-center gap-2">📑 Images to PDF Converter</h3>
+                    <p class="text-xs text-gray-400">Select multiple images (PNG/JPG) and compile them into a print-ready document.</p>
+
+                    <input type="file" id="pdfImageInput" accept="image/*" multiple class="hidden" onchange="handlePdfImages(event)">
+                    <button onclick="document.getElementById('pdfImageInput').click()" class="w-full py-6 border-2 border-dashed border-purple-500/30 hover:border-purple-500 rounded-2xl flex flex-col items-center justify-center gap-2 text-gray-400 hover:text-white transition">
+                        <span class="text-2xl">📸</span>
+                        <span class="text-xs font-medium">Click to select multiple images</span>
+                    </button>
+
+                    <!-- File List Preview -->
+                    <div id="pdf-file-list" class="space-y-2 max-h-48 overflow-y-auto pr-2">
+                        <!-- List items appended here -->
+                    </div>
+
+                    <button onclick="generatePdfFromImages()" id="btn-create-pdf" disabled class="btn-gradient w-full py-3 rounded-xl text-xs font-semibold text-white opacity-50 cursor-not-allowed">
+                        ⚙️ Compile & Print / Save PDF
+                    </button>
+                </div>
+
+                <!-- Info Box -->
+                <div class="glass-panel p-6 rounded-3xl space-y-4">
+                    <h3 class="text-base font-semibold text-white">🔒 100% Client-Side Privacy</h3>
+                    <p class="text-xs text-gray-400 leading-relaxed">
+                        All processing happens directly inside your web browser using JavaScript HTML5 Canvas technology. No files or photos are ever uploaded to an external cloud server, making it 100% secure for private documents.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 4: DEVELOPER TOOLS ==================== -->
+        <section id="sec-dev-tools" class="tool-section hidden space-y-6">
+            <div>
+                <h2 class="text-2xl font-bold text-white">Developer & Text Utilities</h2>
+                <p class="text-sm text-gray-400">Base64 Encoder/Decoder, Hash Generation, and Text Stats Analysis.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Base64 Converter -->
+                <div class="glass-panel p-6 rounded-3xl space-y-4">
+                    <h3 class="text-base font-semibold text-purple-300">🔐 Base64 Encoder / Decoder</h3>
+                    <textarea id="base64-input" rows="4" placeholder="Enter text or string here..." class="w-full bg-gray-900/50 border border-white/10 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-purple-500"></textarea>
+                    
+                    <div class="flex gap-2">
+                        <button onclick="encodeBase64()" class="btn-gradient px-4 py-2 text-xs font-medium rounded-xl text-white flex-1">Encode</button>
+                        <button onclick="decodeBase64()" class="glass-card px-4 py-2 text-xs font-medium rounded-xl text-purple-300 flex-1 hover:bg-white/5">Decode</button>
+                    </div>
+
+                    <textarea id="base64-output" rows="4" readonly placeholder="Result will appear here..." class="w-full bg-gray-950 border border-white/10 rounded-xl p-3 text-xs text-green-400 focus:outline-none"></textarea>
+                </div>
+
+                <!-- Text Analyzer -->
+                <div class="glass-panel p-6 rounded-3xl space-y-4">
+                    <h3 class="text-base font-semibold text-purple-300">📊 Text & Word Counter</h3>
+                    <textarea id="text-counter-input" rows="4" oninput="analyzeText()" placeholder="Type or paste paragraph here..." class="w-full bg-gray-900/50 border border-white/10 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-purple-500"></textarea>
+                    
+                    <div class="grid grid-cols-3 gap-2 text-center">
+                        <div class="glass-card p-3 rounded-xl">
+                            <p id="stat-words" class="text-xl font-bold text-white">0</p>
+                            <p class="text-[10px] text-gray-400">Words</p>
+                        </div>
+                        <div class="glass-card p-3 rounded-xl">
+                            <p id="stat-chars" class="text-xl font-bold text-white">0</p>
+                            <p class="text-[10px] text-gray-400">Characters</p>
+                        </div>
+                        <div class="glass-card p-3 rounded-xl">
+                            <p id="stat-lines" class="text-xl font-bold text-white">0</p>
+                            <p class="text-[10px] text-gray-400">Lines</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="glass-panel border-t border-white/10 px-6 py-6 mt-12">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center text-xs text-gray-500 gap-4">
+            <p>© 2026 OmniTools Hub. Powered by Client-Side HTML5 & Tailwind.</p>
+            <div class="flex gap-4">
+                <span>⚡ Ultra Fast</span>
+                <span>🔒 Privacy First</span>
+                <span>📱 Fully Responsive</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // Tab Switcher
+        function switchTab(tabId) {
+            document.querySelectorAll('.tool-section').forEach(sec => sec.classList.add('hidden'));
+            document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+
+            document.getElementById('sec-' + tabId).classList.remove('hidden');
+            document.getElementById('tab-' + tabId).classList.add('active');
+        }
+
+        /* ==================== 1. PHOTO EDITOR JS ==================== */
+        const canvas = document.getElementById('photoCanvas');
+        const ctx = canvas.getContext('2d');
+        let currentImg = null;
+        let rotationAngle = 0;
+        let flipH = 1;
+        let flipV = 1;
+
+        function loadPhoto(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                currentImg = new Image();
+                currentImg.onload = function() {
+                    document.getElementById('photoPlaceholder').classList.add('hidden');
+                    resetImageFilters();
+                    renderCanvas();
+                };
+                currentImg.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function applyFilters() {
+            // Update labels
+            document.getElementById('val-brightness').innerText = document.getElementById('slider-brightness').value + '%';
+            document.getElementById('val-contrast').innerText = document.getElementById('slider-contrast').value + '%';
+            document.getElementById('val-saturate').innerText = document.getElementById('slider-saturate').value + '%';
+            document.getElementById('val-blur').innerText = document.getElementById('slider-blur').value + 'px';
+            document.getElementById('val-grayscale').innerText = document.getElementById('slider-grayscale').value + '%';
+            document.getElementById('val-sepia').innerText = document.getElementById('slider-sepia').value + '%';
+            document.getElementById('val-hue').innerText = document.getElementById('slider-hue').value + '°';
+
+            renderCanvas();
+        }
+
+        function renderCanvas() {
+            if (!currentImg) return;
+
+            const b = document.getElementById('slider-brightness').value;
+            const c = document.getElementById('slider-contrast').value;
+            const s = document.getElementById('slider-saturate').value;
+            const blur = document.getElementById('slider-blur').value;
+            const g = document.getElementById('slider-grayscale').value;
+            const sepia = document.getElementById('slider-sepia').value;
+            const hue = document.getElementById('slider-hue').value;
+
+            // Canvas size handling with rotation
+            if (rotationAngle % 180 === 0) {
+                canvas.width = currentImg.width;
+                canvas.height = currentImg.height;
+            } else {
+                canvas.width = currentImg.height;
+                canvas.height = currentImg.width;
+            }
+
+            ctx.save();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Apply Filters
+            ctx.filter = `brightness(${b}%) contrast(${c}%) saturate(${s}%) blur(${blur}px) grayscale(${g}%) sepia(${sepia}%) hue-rotate(${hue}deg)`;
+
+            // Transformations
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            ctx.rotate((rotationAngle * Math.PI) / 180);
+            ctx.scale(flipH, flipV);
+
+            ctx.drawImage(currentImg, -currentImg.width / 2, -currentImg.height / 2);
+            ctx.restore();
+        }
+
+        function rotateImage(deg) {
+            rotationAngle = (rotationAngle + deg) % 360;
+            renderCanvas();
+        }
+
+        function flipImage(dir) {
+            if (dir === 'h') flipH *= -1;
+            if (dir === 'v') flipV *= -1;
+            renderCanvas();
+        }
+
+        function resetImageFilters() {
+            document.getElementById('slider-brightness').value = 100;
+            document.getElementById('slider-contrast').value = 100;
+            document.getElementById('slider-saturate').value = 100;
+            document.getElementById('slider-blur').value = 0;
+            document.getElementById('slider-grayscale').value = 0;
+            document.getElementById('slider-sepia').value = 0;
+            document.getElementById('slider-hue').value = 0;
+            rotationAngle = 0;
+            flipH = 1;
+            flipV = 1;
+            applyFilters();
+        }
+
+        function downloadEditedPhoto() {
+            if (!currentImg) return alert('Please upload an image first!');
+            const link = document.createElement('a');
+            link.download = 'omnitools-edited-photo.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+
+        /* ==================== 2. QR GENERATOR JS ==================== */
+        let qrInstance = null;
+        let currentQrType = 'url';
+
+        function setQrType(type) {
+            currentQrType = type;
+            document.querySelectorAll('.qr-type-btn').forEach(btn => {
+                btn.classList.remove('active', 'text-purple-300');
+                btn.classList.add('text-gray-400');
+            });
+            document.getElementById('qr-type-' + type).classList.add('active', 'text-purple-300');
+
+            const container = document.getElementById('qr-inputs-container');
+            if (type === 'url' || type === 'text') {
+                container.innerHTML = `
+                    <div>
+                        <label class="block text-xs font-medium text-gray-300 mb-1">${type === 'url' ? 'Website URL' : 'Text Content'}</label>
+                        <input type="text" id="qr-input-main" placeholder="${type === 'url' ? 'https://example.com' : 'Enter text here...'}" oninput="generateQR()" class="w-full bg-gray-900/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-purple-500">
+                    </div>`;
+            } else if (type === 'wifi') {
+                container.innerHTML = `
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-300 mb-1">Network Name (SSID)</label>
+                            <input type="text" id="qr-wifi-ssid" oninput="generateQR()" placeholder="WiFi Name" class="w-full bg-gray-900/50 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-300 mb-1">Password</label>
+                            <input type="password" id="qr-wifi-pass" oninput="generateQR()" placeholder="Password" class="w-full bg-gray-900/50 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none">
+                        </div>
+                    </div>`;
+            } else if (type === 'whatsapp') {
+                container.innerHTML = `
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-300 mb-1">Phone Number (with Country Code)</label>
+                            <input type="text" id="qr-wa-phone" oninput="generateQR()" placeholder="e.g. 919876543210" class="w-full bg-gray-900/50 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-300 mb-1">Pre-filled Message</label>
+                            <input type="text" id="qr-wa-msg" oninput="generateQR()" placeholder="Hello!" class="w-full bg-gray-900/50 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none">
+                        </div>
+                    </div>`;
+            }
+            generateQR();
+        }
+
+        function generateQR() {
+            let qrText = "https://omnitools.hub";
+
+            if (currentQrType === 'url' || currentQrType === 'text') {
+                const val = document.getElementById('qr-input-main')?.value;
+                if (val) qrText = val;
+            } else if (currentQrType === 'wifi') {
+                const ssid = document.getElementById('qr-wifi-ssid')?.value || '';
+                const pass = document.getElementById('qr-wifi-pass')?.value || '';
+                qrText = `WIFI:S:${ssid};T:WPA;P:${pass};;`;
+            } else if (currentQrType === 'whatsapp') {
+                const phone = document.getElementById('qr-wa-phone')?.value || '';
+                const msg = encodeURIComponent(document.getElementById('qr-wa-msg')?.value || '');
+                qrText = `https://wa.me/${phone}?text=${msg}`;
+            }
+
+            const fgColor = document.getElementById('qr-color-fg').value;
+            const bgColor = document.getElementById('qr-color-bg').value;
+
+            const box = document.getElementById('qrcode-box');
+            box.innerHTML = "";
+
+            qrInstance = new QRCode(box, {
+                text: qrText,
+                width: 180,
+                height: 180,
+                colorDark: fgColor,
+                colorLight: bgColor,
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        }
+
+        function downloadQRCode() {
+            const img = document.querySelector('#qrcode-box img');
+            if (img && img.src) {
+                const link = document.createElement('a');
+                link.download = 'qrcode.png';
+                link.href = img.src;
+                link.click();
+            } else {
+                alert('QR Code generation in progress...');
+            }
+        }
+
+        // Init initial QR
+        window.onload = function() {
+            generateQR();
+        };
+
+        /* ==================== 3. PDF TOOLS JS ==================== */
+        let pdfImagesList = [];
+
+        function handlePdfImages(event) {
+            const files = Array.from(event.target.files);
+            if (files.length === 0) return;
+
+            pdfImagesList = files;
+            const listContainer = document.getElementById('pdf-file-list');
+            listContainer.innerHTML = '';
+
+            files.forEach((f, idx) => {
+                const item = document.createElement('div');
+                item.className = 'glass-card p-2.5 rounded-xl text-xs text-gray-300 flex justify-between items-center';
+                item.innerHTML = `<span>🖼️ ${f.name} (${(f.size/1024).toFixed(1)} KB)</span> <span class="text-purple-400 font-bold">#${idx + 1}</span>`;
+                listContainer.appendChild(item);
+            });
+
+            const btn = document.getElementById('btn-create-pdf');
+            btn.disabled = false;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+
+        function generatePdfFromImages() {
+            if (pdfImagesList.length === 0) return;
+
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write('<html><head><title>OmniTools PDF Print</title><style>body{margin:0;padding:0;text-align:center;} img{max-width:100%;height:auto;page-break-after:always;margin-bottom:10px;}</style></head><body>');
+
+            let loaded = 0;
+            pdfImagesList.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    printWindow.document.write(`<img src="${e.target.result}" />`);
+                    loaded++;
+                    if (loaded === pdfImagesList.length) {
+                        printWindow.document.write('</body></html>');
+                        printWindow.document.close();
+                        setTimeout(() => {
+                            printWindow.print();
+                        }, 500);
+                    }
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        /* ==================== 4. DEV TOOLS JS ==================== */
+        function encodeBase64() {
+            const input = document.getElementById('base64-input').value;
+            try {
+                document.getElementById('base64-output').value = btoa(input);
+            } catch (e) {
+                document.getElementById('base64-output').value = "Error encoding string";
+            }
+        }
+
+        function decodeBase64() {
+            const input = document.getElementById('base64-input').value;
+            try {
+                document.getElementById('base64-output').value = atob(input);
+            } catch (e) {
+                document.getElementById('base64-output').value = "Invalid Base64 string";
+            }
+        }
+
+        function analyzeText() {
+            const text = document.getElementById('text-counter-input').value;
+            const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+            const chars = text.length;
+            const lines = text ? text.split('\n').length : 0;
+
+            document.getElementById('stat-words').innerText = words;
+            document.getElementById('stat-chars').innerText = chars;
+            document.getElementById('stat-lines').innerText = lines;
+        }
+    </script>
+</body>
+</html>
